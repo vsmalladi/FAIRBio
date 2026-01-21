@@ -35,7 +35,13 @@ The FAIR principles guide the management and sharing of research data:
    cd FAIRBio
    ```
 
-2. Install dependencies:
+2. Create a virtual environment:
+   ```bash
+   python3 -m venv FAIRBio
+   source FAIRBio/bin/activate
+   ```
+
+3. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
