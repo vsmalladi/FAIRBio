@@ -46,9 +46,14 @@ The FAIR principles guide the management and sharing of research data:
    pip install -r requirements.txt
    ```
 
+4. Install CLI tools:
+   ```bash
+   pip install -e .
+   ```
+
 ### Usage
 
-Provide examples or scripts here.
+See [CLI Tools Documentation](fairbio/cli/README.md) for available command-line tools and usage examples.
 
 ## Contributing
 
