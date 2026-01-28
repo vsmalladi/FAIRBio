@@ -27,6 +27,7 @@ setup(
     entry_points={
         "console_scripts": [
             "fairbio-ga4gh-registry=fairbio.cli.find_ga4gh:main",
+            "fairbio-trs=fairbio.cli.find_trs:main",
         ],
     },
     include_package_data=True,
