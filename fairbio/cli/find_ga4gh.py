@@ -6,6 +6,7 @@ This tool provides comprehensive access to the GA4GH Service Registry,
 allowing discovery of services, filtering by type, and retrieving service details.
 
 Reference: https://github.com/ga4gh-discovery/ga4gh-service-registry
+OpenAPI: https://raw.githubusercontent.com/ga4gh-discovery/ga4gh-service-registry/develop/service-registry.yaml
 
 Installation:
     pip install -e .
