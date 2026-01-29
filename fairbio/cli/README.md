@@ -103,7 +103,7 @@ fairbio-trs -r https://dockstore.org/api classes
 fairbio-trs -r https://dockstore.org/api info
 
 # Verbose logging
-fairbio-trs -r https://dockstore.org/api tools -v
+fairbio-trs -v -r https://dockstore.org/api tools
 ```
 
 ### Available Options
