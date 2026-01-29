@@ -113,7 +113,7 @@ class ToolRegistryService(object):
         """
         try:
             all_tools = []
-            offset = None
+            offset = 0
             page_count = 0
             
             while True:
@@ -134,24 +134,12 @@ class ToolRegistryService(object):
                     break
                 
                 all_tools.extend(tools)
-                
-                # Check if there's a next page
-                # Some registries return next_page URL, others use offset in headers
-                next_page = response.get('next_page') if isinstance(response, dict) else None
-                if not next_page:
-                    # No next page, we've reached the end
+
+                # If fewer results than limit, this was the last page
+                if len(tools) < limit:
                     break
                 
-                # Extract offset from next_page URL if available, otherwise break
-                if '?' in str(next_page):
-                    import urllib.parse
-                    parsed = urllib.parse.urlparse(next_page)
-                    params = urllib.parse.parse_qs(parsed.query)
-                    offset = params.get('offset', [None])[0]
-                    if offset is None:
-                        break
-                else:
-                    break
+                offset += limit
             
             return {
                 "all_tools": all_tools,
