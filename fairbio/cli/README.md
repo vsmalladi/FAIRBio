@@ -36,7 +36,7 @@ fairbio-ga4gh-registry services --type wes -f text -o wes_services.txt
 fairbio-ga4gh-registry services -v
 
 # Use custom registry URL
-fairbio-ga4gh-registry services -r https://custom-registry.org/
+fairbio-ga4gh-registry -r https://custom-registry.org/ services
 ```
 
 ### Available Options
