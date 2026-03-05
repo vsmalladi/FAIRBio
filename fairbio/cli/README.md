@@ -122,6 +122,7 @@ fairbio-trs -v -r https://dockstore.org/api tools
 - `--author` - Filter by tool author
 - `--description` - Filter by tool description
 - `--descriptor-type` - Filter by descriptor type (CWL, WDL, NFL, GALAXY, SMK)
+- `--toolclass` - Filter by tool class name (e.g., `CommandLineTool`, `Workflow`, `ExpressionTool`)
 - `--limit` - Page size for each request (default: 1000)
 - `--all` - **Automatically fetch ALL tools by paginating through all results**
 - `--offset` - Start index for manual pagination (use `--all` for automatic pagination)
@@ -136,48 +137,81 @@ fairbio-trs -v -r https://dockstore.org/api tools
 **Fetch all tools from a registry (auto-pagination):**
 ```bash
 # Automatically paginate through all results
-fairbio-trs tools --all -o all_tools.json
+fairbio-trs -r https://dockstore.org/api tools --all -o all_tools.json
+
+# Get all CommandLineTool tools
+fairbio-trs -r https://dockstore.org/api tools --all --toolclass CommandLineTool -o all_cmdline_tools.json
+
+# Get all Workflow tools
+fairbio-trs -r https://dockstore.org/api tools --all --toolclass Workflow -o all_workflows.json
 
 # Get all tools with filters
-fairbio-trs tools --all --descriptor-type WDL -o all_wdl_tools.json
+fairbio-trs -r https://dockstore.org/api tools --all --descriptor-type WDL -o all_wdl_tools.json
 
 # Get all tools as JSON to stdout for piping
-fairbio-trs tools --all --json | jq '.total_tools'
+fairbio-trs -r https://dockstore.org/api tools --all --json | jq '.total_tools'
+```
+
+**Filter by tool class:**
+```bash
+# Find all command-line tools
+fairbio-trs -r https://dockstore.org/api tools --toolclass CommandLineTool -o cmdline_tools.json
+
+# Find all workflows
+fairbio-trs -r https://dockstore.org/api tools --toolclass Workflow -o workflows.json
+
+# Find ExpressionTools
+fairbio-trs -r https://dockstore.org/api tools --toolclass ExpressionTool -o expression_tools.json
+
+# Combine filters: WDL workflows only
+fairbio-trs -r https://dockstore.org/api tools --descriptor-type WDL --toolclass Workflow -o wdl_workflows.json
 ```
 
 **Manual pagination through results:**
 ```bash
 # Get first page of 500 tools
-fairbio-trs tools --limit 500 -o page1.json
+fairbio-trs -r https://dockstore.org/api tools --limit 500 -o page1.json
 
 # Get next page using offset from response
-fairbio-trs tools --limit 500 --offset "500" -o page2.json
+fairbio-trs -r https://dockstore.org/api tools --limit 500 --offset "500" -o page2.json
 ```
 
 **Search for tools in Dockstore:**
 ```bash
-fairbio-trs tools --name "samtools" -o samtools_tools.json
+fairbio-trs -r https://dockstore.org/api tools --name "samtools" -o samtools_tools.json
+
+# Filter samtools to only CommandLineTool
+fairbio-trs -r https://dockstore.org/api tools --name "samtools" --toolclass CommandLineTool -o samtools_cmdline.json
 ```
 
 **Get a workflow descriptor:**
 ```bash
-fairbio-trs descriptor --id quay.io/foo/bar --version v1.0.0 --type WDL -o workflow.wdl
+fairbio-trs -r https://dockstore.org/api descriptor --id quay.io/foo/bar --version v1.0.0 --type WDL -o workflow.wdl
 ```
 
 **Download all files for a tool version:**
 ```bash
-fairbio-trs files --id quay.io/foo/bar --version v1.0.0 --type WDL -f zip -o tool_files.zip
+fairbio-trs -r https://dockstore.org/api files --id quay.io/foo/bar --version v1.0.0 --type WDL -f zip -o tool_files.zip
 ```
 
 **Get test parameters for a CWL tool:**
 ```bash
-fairbio-trs tests --id quay.io/foo/bar --version v1.0.0 --type CWL -o tests.json
+fairbio-trs -r https://dockstore.org/api tests --id quay.io/foo/bar --version v1.0.0 --type CWL -o tests.json
 ```
 
 **Get pagination information:**
 ```bash
 # View pagination details in JSON output
-fairbio-trs tools --json | jq '.pagination'
+fairbio-trs -r https://dockstore.org/api tools --json | jq '.pagination'
 
 # Shows: current_offset, current_limit, next_page, last_page, self_link
+```
+
+**List available tool classes:**
+```bash
+# See what tool classes are available in a registry
+fairbio-trs -r https://dockstore.org/api classes
+
+# Save to file
+fairbio-trs -r https://dockstore.org/api classes -o tool_classes.json
 ```

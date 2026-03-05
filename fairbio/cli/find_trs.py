@@ -89,6 +89,9 @@ def cmd_list_tools(args):
             filters['description'] = args.description
         if args.descriptor_type:
             filters['descriptorType'] = args.descriptor_type
+        if args.toolclass:
+            # not all registries support this parameter, but include it
+            filters['toolclass'] = args.toolclass
         
         # Get tools - either all or paginated
         if args.all:
@@ -119,6 +122,18 @@ def cmd_list_tools(args):
                 tool_list = tools if isinstance(tools, list) else []
                 total = len(tool_list)
         
+        # apply local filtering for toolclass when provided
+        if args.toolclass:
+            lc = args.toolclass.lower()
+            filtered = []
+            for t in tool_list:
+                tc = t.get('toolclass') or {}
+                name = tc.get('name', '') if isinstance(tc, dict) else str(tc)
+                if lc in name.lower():
+                    filtered.append(t)
+            tool_list = filtered
+            total = len(tool_list)
+        
         logger.info(f"✓ Found {total} tools")
         
         output = {
@@ -146,8 +161,9 @@ def cmd_list_tools(args):
             tool_id = tool.get('id', 'Unknown')
             name = tool.get('name', 'N/A')
             org = tool.get('organization', 'N/A')
+            tc = tool.get('toolclass', {}).get('name', 'N/A') if isinstance(tool.get('toolclass'), dict) else tool.get('toolclass', 'N/A')
             logger.info(f"  {i}. {tool_id}")
-            logger.info(f"     Name: {name}, Org: {org}")
+            logger.info(f"     Name: {name}, Org: {org}, Class: {tc}")
         if total > 10:
             logger.info(f"  ... and {total - 10} more")
         
@@ -693,6 +709,8 @@ Reference:
     tools_parser.add_argument('--description', metavar='DESC', help='Filter by description')
     tools_parser.add_argument('--descriptor-type', metavar='TYPE', 
                              help='Filter by descriptor type (CWL, WDL, NFL, GALAXY, SMK)')
+    tools_parser.add_argument('--toolclass', metavar='CLASS',
+                              help='Filter by tool class name (e.g. CommandLineTool)')
     tools_parser.add_argument('--limit', type=int, default=1000, help='Page size for each request (default: 1000)')
     tools_parser.add_argument('--all', action='store_true', help='Fetch ALL tools by automatically paginating through all results')
     tools_parser.add_argument('--offset', metavar='OFFSET', help='Start index for manual pagination (use --all to auto-paginate)')
