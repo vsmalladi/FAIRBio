@@ -66,19 +66,48 @@ fairbio-ga4gh-registry service --id org.dockstore.dockstoreapi -o dockstore_info
 fairbio-ga4gh-registry types -f text -o service_types.txt
 ```
 
+---
+
 ## Tool Registry Service (TRS) Query (`fairbio-trs`)
 
 The `fairbio-trs` command provides direct access to GA4GH Tool Registry Service (TRS) endpoints, allowing you to discover and query tools, workflows, and their metadata.
 
 Reference: https://github.com/ga4gh/tool-registry-service-schemas
 
+### Commands
+
+| Command | Description |
+|---|---|
+| `tools` | List all tools with optional filtering and pagination |
+| `search` | Search tools by name, descriptor type, or author |
+| `tool` | Get a specific tool by ID |
+| `versions` | List all versions of a tool |
+| `version` | Get a specific tool version |
+| `descriptor` | Get a tool descriptor (CWL, WDL, etc.); use `--path` for secondary files |
+| `files` | Get file list for a tool version; use `--format zip` to download an archive |
+| `tests` | Get test parameter files for a tool version |
+| `containerfile` | Get container specifications (Dockerfiles, Singularity recipes) for a version |
+| `classes` | List all tool classes available in the registry |
+| `info` | Get TRS service information |
+
+### Global Options
+
+| Option | Description |
+|---|---|
+| `-r, --registry URL` | TRS registry API base URL (required for all commands) |
+| `-v, --verbose` | Enable verbose logging |
+| `-h, --help` | Show help message |
+
 ### Basic Commands
 
 ```bash
-# List all tools in a TRS registry
+# List tools
 fairbio-trs -r https://dockstore.org/api tools
 
-# Get a specific tool by ID
+# Search tools
+fairbio-trs -r https://dockstore.org/api search --query samtools
+
+# Get a specific tool
 fairbio-trs -r https://dockstore.org/api tool --id quay.io/foo/bar
 
 # List all versions of a tool
@@ -87,131 +116,277 @@ fairbio-trs -r https://dockstore.org/api versions --id quay.io/foo/bar
 # Get a specific tool version
 fairbio-trs -r https://dockstore.org/api version --id quay.io/foo/bar --version v1.0.0
 
-# Get tool descriptor (CWL, WDL, etc.)
+# Get a tool descriptor
 fairbio-trs -r https://dockstore.org/api descriptor --id quay.io/foo/bar --version v1.0.0 --type WDL
 
-# Get file list for a tool version
-fairbio-trs -r https://dockstore.org/api files --id quay.io/foo/bar --version v1.0.0 --type WDL -o files.json
+# Get a secondary descriptor file by relative path
+fairbio-trs -r https://dockstore.org/api descriptor --id quay.io/foo/bar --version v1.0.0 --type CWL --path tools/helper.cwl
 
-# Get test files for a tool
-fairbio-trs -r https://dockstore.org/api tests --id quay.io/foo/bar --version v1.0.0 --type WDL
+# Get file list for a tool version
+fairbio-trs -r https://dockstore.org/api files --id quay.io/foo/bar --version v1.0.0 --type WDL
+
+# Download all files as a zip archive
+fairbio-trs -r https://dockstore.org/api files --id quay.io/foo/bar --version v1.0.0 --type WDL --format zip -o bundle.zip
+
+# Get test parameter files
+fairbio-trs -r https://dockstore.org/api tests --id quay.io/foo/bar --version v1.0.0 --type CWL
+
+# Get container specifications (Dockerfiles, etc.)
+fairbio-trs -r https://dockstore.org/api containerfile --id quay.io/foo/bar --version v1.0.0
 
 # List all tool classes
 fairbio-trs -r https://dockstore.org/api classes
 
 # Get TRS service information
 fairbio-trs -r https://dockstore.org/api info
-
-# Verbose logging
-fairbio-trs -v -r https://dockstore.org/api tools
 ```
 
-### Available Options
+### Per-Command Options
 
-**Global options:**
-- `-r, --registry` - TRS registry URL (required for most commands)
-- `-v, --verbose` - Enable verbose logging
-- `-o, --output` - Save results to a file
-- `-f, --format` - Output format: `json` (default) or `text`
-- `--json` - Print raw JSON to stdout (for `tools`, `classes`, `info` commands)
-- `-h, --help` - Show help message
+#### `tools` — List tools
 
-**Filtering options (tools command):**
-- `--id` - Filter by tool ID
-- `--name` - Filter by tool name
-- `--author` - Filter by tool author
-- `--description` - Filter by tool description
-- `--descriptor-type` - Filter by descriptor type (CWL, WDL, NFL, GALAXY, SMK)
-- `--toolclass` - Filter by tool class name (e.g., `CommandLineTool`, `Workflow`, `ExpressionTool`)
-- `--limit` - Page size for each request (default: 1000)
-- `--all` - **Automatically fetch ALL tools by paginating through all results**
-- `--offset` - Start index for manual pagination (use `--all` for automatic pagination)
+```bash
+fairbio-trs -r <URL> tools [options]
+```
 
-**Version/Descriptor options:**
-- `--id` - Tool ID (required)
-- `--version` - Version ID (required for version, descriptor, files, tests commands)
-- `--type` - Descriptor type: CWL, WDL, NFL, GALAXY, SMK, PLAIN_CWL, PLAIN_WDL, etc.
+| Option | Description |
+|---|---|
+| `--id ID` | Filter by tool ID |
+| `--name NAME` | Filter by tool name |
+| `--author AUTHOR` | Filter by author |
+| `--description DESC` | Filter by description keyword |
+| `--descriptor-type TYPE` | Filter by descriptor type (`CWL`, `WDL`, `NFL`, `GALAXY`, `SMK`) |
+| `--toolclass CLASS` | Filter by tool class name (e.g., `CommandLineTool`, `Workflow`) |
+| `--limit N` | Page size per request (default: `1000`) |
+| `--all` | Auto-paginate to fetch every page of results |
+| `--offset N` | Start index for manual pagination |
+| `-o, --output FILE` | Save results to file |
+| `-f, --format` | Output format: `json` (default) or `text` |
+| `--json` | Print raw JSON to stdout |
+
+#### `search` — Search tools
+
+Convenience command that searches by name, descriptor type, and/or author in a single call.
+
+```bash
+fairbio-trs -r <URL> search [options]
+```
+
+| Option | Description |
+|---|---|
+| `--query QUERY` | Search term matched against tool name / toolname |
+| `--descriptor-type TYPE` | Filter by descriptor type (`CWL`, `WDL`, `NFL`, `GALAXY`, `SMK`) |
+| `--author AUTHOR` | Filter by author |
+| `--limit N` | Maximum number of results (default: `1000`) |
+| `-o, --output FILE` | Save results to file |
+| `-f, --format` | Output format: `json` (default) or `text` |
+| `--json` | Print raw JSON to stdout |
+
+#### `tool` — Get a specific tool
+
+```bash
+fairbio-trs -r <URL> tool --id ID [options]
+```
+
+| Option | Description |
+|---|---|
+| `--id ID` | Tool ID *(required)* |
+| `-o, --output FILE` | Save results to file |
+| `-f, --format` | Output format: `json` (default) or `text` |
+| `--json` | Print raw JSON to stdout |
+
+#### `versions` — List all versions of a tool
+
+```bash
+fairbio-trs -r <URL> versions --id ID [options]
+```
+
+| Option | Description |
+|---|---|
+| `--id ID` | Tool ID *(required)* |
+| `-o, --output FILE` | Save results to file |
+| `-f, --format` | Output format: `json` (default) or `text` |
+| `--json` | Print raw JSON to stdout |
+
+#### `version` — Get a specific tool version
+
+```bash
+fairbio-trs -r <URL> version --id ID --version VERSION [options]
+```
+
+| Option | Description |
+|---|---|
+| `--id ID` | Tool ID *(required)* |
+| `--version VERSION` | Version ID *(required)* |
+| `-o, --output FILE` | Save results to file |
+| `-f, --format` | Output format: `json` (default) or `text` |
+| `--json` | Print raw JSON to stdout |
+
+#### `descriptor` — Get a tool descriptor
+
+Fetches the primary descriptor for a tool version. Use `--path` to retrieve a secondary/additional descriptor file by its relative path within the version.
+
+```bash
+fairbio-trs -r <URL> descriptor --id ID --version VERSION --type TYPE [options]
+```
+
+| Option | Description |
+|---|---|
+| `--id ID` | Tool ID *(required)* |
+| `--version VERSION` | Version ID *(required)* |
+| `--type TYPE` | Descriptor type *(required)*: `CWL`, `WDL`, `NFL`, `GALAXY`, `SMK`, `PLAIN_CWL`, `PLAIN_WDL`, etc. |
+| `--path PATH` | Relative path to a secondary descriptor file (e.g., `tools/helper.cwl`) |
+| `-o, --output FILE` | Save results to file |
+| `-f, --format` | Output format: `json` (default) or `text` |
+| `--json` | Print raw JSON to stdout |
+
+#### `files` — Get file list for a tool version
+
+```bash
+fairbio-trs -r <URL> files --id ID --version VERSION --type TYPE [options]
+```
+
+| Option | Description |
+|---|---|
+| `--id ID` | Tool ID *(required)* |
+| `--version VERSION` | Version ID *(required)* |
+| `--type TYPE` | Descriptor type *(required)* |
+| `-o, --output FILE` | Save results to file |
+| `-f, --format` | Output format: `json` (default), `text`, or `zip` (downloads all files as an archive; requires `-o`) |
+| `--json` | Print raw JSON to stdout |
+
+#### `tests` — Get test parameter files
+
+```bash
+fairbio-trs -r <URL> tests --id ID --version VERSION --type TYPE [options]
+```
+
+| Option | Description |
+|---|---|
+| `--id ID` | Tool ID *(required)* |
+| `--version VERSION` | Version ID *(required)* |
+| `--type TYPE` | Descriptor type *(required)* |
+| `-o, --output FILE` | Save results to file |
+| `-f, --format` | Output format: `json` (default) or `text` |
+| `--json` | Print raw JSON to stdout |
+
+#### `containerfile` — Get container specifications
+
+Fetches Dockerfiles, Singularity recipes, or other container specifications for a tool version.
+
+```bash
+fairbio-trs -r <URL> containerfile --id ID --version VERSION [options]
+```
+
+| Option | Description |
+|---|---|
+| `--id ID` | Tool ID *(required)* |
+| `--version VERSION` | Version ID *(required)* |
+| `-o, --output FILE` | Save results to file |
+| `-f, --format` | Output format: `json` (default) or `text` |
+| `--json` | Print raw JSON to stdout |
+
+#### `classes` — List tool classes
+
+```bash
+fairbio-trs -r <URL> classes [options]
+```
+
+| Option | Description |
+|---|---|
+| `-o, --output FILE` | Save results to file |
+| `-f, --format` | Output format: `json` (default) or `text` |
+| `--json` | Print raw JSON to stdout |
+
+#### `info` — Get TRS service information
+
+```bash
+fairbio-trs -r <URL> info [options]
+```
+
+| Option | Description |
+|---|---|
+| `-o, --output FILE` | Save results to file |
+| `-f, --format` | Output format: `json` (default) or `text` |
+| `--json` | Print raw JSON to stdout |
 
 ### Example Workflows
 
 **Fetch all tools from a registry (auto-pagination):**
 ```bash
-# Automatically paginate through all results
+# Paginate automatically through all results
 fairbio-trs -r https://dockstore.org/api tools --all -o all_tools.json
 
-# Get all CommandLineTool tools
-fairbio-trs -r https://dockstore.org/api tools --all --toolclass CommandLineTool -o all_cmdline_tools.json
+# All CommandLineTool tools
+fairbio-trs -r https://dockstore.org/api tools --all --toolclass CommandLineTool -o cmdline_tools.json
 
-# Get all Workflow tools
-fairbio-trs -r https://dockstore.org/api tools --all --toolclass Workflow -o all_workflows.json
+# All WDL workflows
+fairbio-trs -r https://dockstore.org/api tools --all --descriptor-type WDL --toolclass Workflow -o wdl_workflows.json
 
-# Get all tools with filters
-fairbio-trs -r https://dockstore.org/api tools --all --descriptor-type WDL -o all_wdl_tools.json
-
-# Get all tools as JSON to stdout for piping
+# Pipe total count to jq
 fairbio-trs -r https://dockstore.org/api tools --all --json | jq '.total_tools'
 ```
 
-**Filter by tool class:**
+**Search for tools:**
 ```bash
-# Find all command-line tools
-fairbio-trs -r https://dockstore.org/api tools --toolclass CommandLineTool -o cmdline_tools.json
+# Search by name
+fairbio-trs -r https://dockstore.org/api search --query samtools
 
-# Find all workflows
-fairbio-trs -r https://dockstore.org/api tools --toolclass Workflow -o workflows.json
+# Narrow to a specific descriptor type
+fairbio-trs -r https://dockstore.org/api search --query samtools --descriptor-type CWL
 
-# Find ExpressionTools
-fairbio-trs -r https://dockstore.org/api tools --toolclass ExpressionTool -o expression_tools.json
-
-# Combine filters: WDL workflows only
-fairbio-trs -r https://dockstore.org/api tools --descriptor-type WDL --toolclass Workflow -o wdl_workflows.json
+# Search by author
+fairbio-trs -r https://dockstore.org/api search --author "John Doe" -o results.json
 ```
 
-**Manual pagination through results:**
+**Manual pagination:**
 ```bash
-# Get first page of 500 tools
+# First page
 fairbio-trs -r https://dockstore.org/api tools --limit 500 -o page1.json
 
-# Get next page using offset from response
-fairbio-trs -r https://dockstore.org/api tools --limit 500 --offset "500" -o page2.json
+# Next page
+fairbio-trs -r https://dockstore.org/api tools --limit 500 --offset 500 -o page2.json
 ```
 
-**Search for tools in Dockstore:**
+**Inspect a tool and its versions:**
 ```bash
-fairbio-trs -r https://dockstore.org/api tools --name "samtools" -o samtools_tools.json
-
-# Filter samtools to only CommandLineTool
-fairbio-trs -r https://dockstore.org/api tools --name "samtools" --toolclass CommandLineTool -o samtools_cmdline.json
+fairbio-trs -r https://dockstore.org/api tool --id quay.io/foo/bar --json
+fairbio-trs -r https://dockstore.org/api versions --id quay.io/foo/bar
+fairbio-trs -r https://dockstore.org/api version --id quay.io/foo/bar --version v1.0.0
 ```
 
-**Get a workflow descriptor:**
+**Work with descriptors:**
 ```bash
+# Primary WDL descriptor
 fairbio-trs -r https://dockstore.org/api descriptor --id quay.io/foo/bar --version v1.0.0 --type WDL -o workflow.wdl
+
+# Secondary CWL file by relative path
+fairbio-trs -r https://dockstore.org/api descriptor --id quay.io/foo/bar --version v1.0.0 --type CWL --path tools/helper.cwl -o helper.cwl
 ```
 
-**Download all files for a tool version:**
+**Download files and test parameters:**
 ```bash
-fairbio-trs -r https://dockstore.org/api files --id quay.io/foo/bar --version v1.0.0 --type WDL -f zip -o tool_files.zip
-```
+# List files as JSON
+fairbio-trs -r https://dockstore.org/api files --id quay.io/foo/bar --version v1.0.0 --type WDL -o files.json
 
-**Get test parameters for a CWL tool:**
-```bash
+# Download all files as a zip archive
+fairbio-trs -r https://dockstore.org/api files --id quay.io/foo/bar --version v1.0.0 --type WDL --format zip -o bundle.zip
+
+# Get test parameter files
 fairbio-trs -r https://dockstore.org/api tests --id quay.io/foo/bar --version v1.0.0 --type CWL -o tests.json
 ```
 
-**Get pagination information:**
+**Get container specifications:**
 ```bash
-# View pagination details in JSON output
-fairbio-trs -r https://dockstore.org/api tools --json | jq '.pagination'
-
-# Shows: current_offset, current_limit, next_page, last_page, self_link
+fairbio-trs -r https://dockstore.org/api containerfile --id quay.io/foo/bar --version v1.0.0
+fairbio-trs -r https://dockstore.org/api containerfile --id quay.io/foo/bar --version v1.0.0 -o containerfiles.json
 ```
 
-**List available tool classes:**
+**Discover registry metadata:**
 ```bash
-# See what tool classes are available in a registry
+# What tool classes does this registry support?
 fairbio-trs -r https://dockstore.org/api classes
 
-# Save to file
-fairbio-trs -r https://dockstore.org/api classes -o tool_classes.json
+# Service info
+fairbio-trs -r https://dockstore.org/api info --json | jq '.service_info.version'
 ```
