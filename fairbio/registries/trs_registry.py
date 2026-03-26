@@ -10,6 +10,7 @@ OpenAPI Specification: https://raw.githubusercontent.com/ga4gh/tool-registry-ser
 
 import requests
 import json
+from urllib.parse import urlparse, parse_qs
 
 
 class ToolRegistryService(object):
@@ -57,7 +58,7 @@ class ToolRegistryService(object):
             print("Error fetching TRS service info: {0}".format(e))
             return None
     
-    def get_tools(self, limit=1000, offset=None, **filters):
+    def get_tools(self, limit=100, offset=0, **filters):
         """
         List all tools in the registry with optional filtering.
         
@@ -85,20 +86,35 @@ class ToolRegistryService(object):
         """
         try:
             url = "{0}/tools".format(self.trs_url)
+            # Normalize case-insensitive client filters to TRS spec casing
+            if "toolclass" in filters and "toolClass" not in filters:
+                filters["toolClass"] = filters.pop("toolclass")
+            if "descriptortype" in filters and "descriptorType" not in filters:
+                filters["descriptorType"] = filters.pop("descriptortype")
+
             params = {"limit": limit}
             if offset is not None:
                 params["offset"] = offset
+            
             # Add any additional filters
             params.update(filters)
             
             response = self.session.get(url, params=params, timeout=10)
             response.raise_for_status()
-            return response.json()
+            return {
+                "tools": response.json(),  # body is a plain array
+                # pagination info is in headers:
+                "next_page": response.headers.get("next_page"),
+                "last_page": response.headers.get("last_page"),
+                "self_link": response.headers.get("self_link"),
+                "current_offset": response.headers.get("current_offset"),
+                "current_limit": response.headers.get("current_limit"),
+            }
         except requests.RequestException as e:
             print("Error fetching tools: {0}".format(e))
             return []
     
-    def get_all_tools(self, limit=1000, **filters):
+    def get_all_tools(self, limit=100, **filters):
         """
         Fetch ALL tools from the registry by automatically paginating through results.
         
@@ -112,40 +128,42 @@ class ToolRegistryService(object):
             dict: Response with all_tools list, total_count, and pagination summary
         """
         try:
+            page_size = min(limit, 100)
             all_tools = []
+            
+            # Use next_page URL from headers rather than manually incrementing offset
+            next_url = None
             offset = 0
-            page_count = 0
             
             while True:
-                page_count += 1
-                response = self.get_tools(limit=limit, offset=offset, **filters)
-                
-                if isinstance(response, dict):
-                    # Try to extract tools from response
-                    if 'tools' in response:
-                        tools = response.get('tools', [])
-                    else:
-                        # If response is direct tools array wrapped in dict
-                        tools = response
+                if next_url:
+                    # Use the server-provided next_page URL directly
+                    response = self.session.get(next_url)
                 else:
-                    tools = response if isinstance(response, list) else []
+                    response = self.session.get(
+                        f"{self.trs_url}/tools",
+                        params={"limit": page_size, "offset": offset, **filters}
+                    )
                 
-                if not tools:
+                response.raise_for_status()
+                page_tools = response.json()  # body is a plain array per spec
+                
+                if not page_tools:
                     break
+                    
+                all_tools.extend(page_tools)
                 
-                all_tools.extend(tools)
-
-                # If fewer results than limit, this was the last page
-                if len(tools) < limit:
+                # Pagination state lives in HEADERS, not the body
+                next_url = response.headers.get("next_page")
+                
+                if not next_url or len(page_tools) < page_size:
                     break
-                
-                offset += limit
             
             return {
                 "all_tools": all_tools,
                 "total_count": len(all_tools),
-                "total_pages": page_count,
-                "page_size": limit
+                "total_pages": (len(all_tools) + page_size - 1) // page_size,
+                "page_size": page_size,
             }
         except requests.RequestException as e:
             print("Error fetching all tools: {0}".format(e))

@@ -66,12 +66,20 @@ def cmd_list_tools(args):
     if not args.registry:
         logger.error("❌ Registry URL is required (use -r/--registry)")
         sys.exit(1)
+    
+    if args.limit > 100:
+        logger.warning(f"⚠️  Dockstore enforces a server-side limit of 100 (you requested {args.limit}). Use --all to paginate automatically.")
+        args.limit = 100
+    
+    if not args.all and total == args.limit:
+        logger.info(f"⚠️  Results may be truncated at {total}. Use --all to fetch everything.")
 
     if args.all:
         logger.info(f"🔍 Fetching ALL tools from {args.registry}...")
         logger.info("   (This may take a while, automatically paginating through all results...)")
     else:
         logger.info(f"🔍 Fetching tools from {args.registry}...")
+    
 
     try:
         trs = ToolRegistryService(args.registry)
@@ -89,7 +97,7 @@ def cmd_list_tools(args):
         if args.descriptor_type:
             filters['descriptorType'] = args.descriptor_type
         if args.toolclass:
-            filters['toolclass'] = args.toolclass
+            filters['toolClass'] = args.toolclass
 
         if args.all:
             response = trs.get_all_tools(limit=args.limit, **filters)
@@ -122,7 +130,7 @@ def cmd_list_tools(args):
             lc = args.toolclass.lower()
             filtered = []
             for t in tool_list:
-                tc = t.get('toolclass') or {}
+                tc = t.get('toolClass') or t.get('toolclass') or {}
                 name = tc.get('name', '') if isinstance(tc, dict) else str(tc)
                 if lc in name.lower():
                     filtered.append(t)
@@ -283,7 +291,7 @@ def cmd_get_tool(args):
         logger.info(f"  URL: {tool.get('url', 'N/A')}")
         logger.info(f"  Organization: {tool.get('organization', 'N/A')}")
         logger.info(f"  Description: {tool.get('description', 'N/A')}")
-        logger.info(f"  Tool Class: {tool.get('toolclass', {}).get('name', 'N/A')}")
+        logger.info(f"  Tool Class: {tool.get('toollass', {}).get('name', 'N/A')}")
 
         versions = tool.get('versions', [])
         logger.info(f"  Versions: {len(versions)}")
@@ -841,8 +849,8 @@ Reference:
                               help='Filter by descriptor type (CWL, WDL, NFL, GALAXY, SMK)')
     tools_parser.add_argument('--toolclass', metavar='CLASS',
                               help='Filter by tool class name (e.g. CommandLineTool)')
-    tools_parser.add_argument('--limit', type=int, default=1000,
-                              help='Page size for each request (default: 1000)')
+    tools_parser.add_argument('--limit', type=int, default=100,
+                              help='Page size for each request (default: 100, max: 100)')
     tools_parser.add_argument('--all', action='store_true',
                               help='Fetch ALL tools by automatically paginating through all results')
     tools_parser.add_argument('--offset', metavar='OFFSET',
@@ -859,8 +867,8 @@ Reference:
     search_parser.add_argument('--descriptor-type', metavar='TYPE',
                                help='Filter by descriptor type (CWL, WDL, NFL, GALAXY, SMK)')
     search_parser.add_argument('--author', metavar='AUTHOR', help='Filter by author')
-    search_parser.add_argument('--limit', type=int, default=1000,
-                               help='Maximum number of results (default: 1000)')
+    search_parser.add_argument('--limit', type=int, default=100,
+                               help='Maximum number of results (default: 100, max: 100)')
     search_parser.add_argument('-o', '--output', metavar='FILE', help='Save results to file')
     search_parser.add_argument('-f', '--format', choices=['json', 'text'], default='json',
                                help='Output format (default: json)')
